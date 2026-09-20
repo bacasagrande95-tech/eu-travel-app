@@ -114,9 +114,27 @@ window.NUVEM=(function(){
     const partes=await Promise.all([
       api('participante?select=pessoa_id,nome,cor,pode_editar_roteiro&order=nome'),
       api('avaliacao?select=pessoa_id,lugar_id,nivel,nota'),
-      api('item_roteiro?select=pessoa_id,lugar_id,dia,posicao')
+      api('item_roteiro?select=pessoa_id,lugar_id,dia,posicao'),
+      api('ideia?select=id,pessoa_id,cidade,texto,estado,lugar_id,criado_em&order=criado_em.desc'),
+      api('lugar?select=id,cidade,categoria,nome,original,bairro,duracao,preco,porque,etiquetas')
     ]);
-    return {pessoas:partes[0]||[],avaliacoes:partes[1]||[],roteiro:partes[2]||[]};
+    return {
+      pessoas:partes[0]||[],avaliacoes:partes[1]||[],roteiro:partes[2]||[],
+      ideias:partes[3]||[],lugares:partes[4]||[]
+    };
+  }
+
+  /* as ideias são anotadas direto pelo app; o card, não — quem escreve
+     card é quem pesquisa, por SQL */
+  async function criarIdeia(linha){
+    return api('ideia',{
+      method:'POST',
+      headers:{Prefer:'return=representation'},
+      body:linha
+    });
+  }
+  async function apagarIdeia(id){
+    return api('ideia?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
   }
 
   /* sobe as minhas marcações e apaga as minhas que sumiram.
@@ -155,6 +173,8 @@ window.NUVEM=(function(){
     sair:sair,
     renova:renova,
     puxar:puxar,
+    criarIdeia:criarIdeia,
+    apagarIdeia:apagarIdeia,
     enviarMarcas:enviarMarcas,
     enviarRoteiro:enviarRoteiro,
     lerSessao:lerSessao

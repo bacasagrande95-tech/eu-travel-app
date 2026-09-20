@@ -71,6 +71,8 @@ function profLoad(){
     d.state=migraIds(d.state||{});
     d.plan=migraPlano(d.plan||{});
   });
+  /* as ideias anotadas são do casal, não de um perfil: ficam soltas no store */
+  if(!Array.isArray(store.ideias))store.ideias=[];
   who=PEOPLE.some(p=>p.k===store.active)?store.active:'bruno';
   store.active=who;
   /* grava sempre: a conversão de id precisa ficar registrada */
@@ -105,7 +107,7 @@ const TAGC={
   'imperdível':'star','ícone':'star','único':'star',
   'grátis':'good','gratuito':'good','barato':'good','fácil':'good','acessível':'good','fácil de entrar':'good','sem caminhar':'good',
   'trilha':'good','natureza':'good','ao ar livre':'good','jardim':'good','parque':'good','campo':'good','praia':'good',
-  'verificar':'warn','aviso':'warn','evitar':'warn','armadilha':'warn','fechado':'warn','obras':'warn','fila':'warn','segurança':'warn','regras':'warn',
+'verificar':'warn','aviso':'warn','evitar':'warn','armadilha':'warn','fechado':'warn','obras':'warn','fila':'warn','segurança':'warn','regras':'warn',
   'reservar':'warm','agendar':'warm','dresscode':'warm','luxo':'warm','comida':'warm','cerveja':'warm','vinho':'warm','café':'warm',
   'mercado':'warm','doce':'warm','brunch':'warm','vegetariano':'warm','vegano':'warm','asiático':'warm','tradição':'warm',
   'noite':'night','madrugada':'night','pôr do sol':'night','bar':'night','coquetel':'night','jazz':'night','cinema':'night',
@@ -118,7 +120,9 @@ const TAGC={
   'música ao vivo':'pink','dança':'pink','internacional':'pink','world':'pink','indie':'pink','rock':'pink','soul':'pink',
   'tango':'pink','comédia':'pink','teatro':'pink','ópera':'pink','balé':'pink','concerto':'pink','festa':'pink',
   'queer':'pink','gay-friendly':'pink','drag':'pink','experimental':'pink','underground':'pink','alternativo':'pink',
-  'imersivo':'pink','interativo':'pink','vinil':'pink'
+  'imersivo':'pink','interativo':'pink','vinil':'pink',
+  /* o que entrou no catálogo depois, nascido de uma ideia anotada no app */
+  'novo':'novo'
 };
 function tagCls(t){return TAGC[t]||'';}
 function toast(msg){
@@ -246,7 +250,8 @@ function avatares(row,id){
 function rowHTML(it){
   const s=state[it.id]||{};
   const c=catOf(it.k);
-  const tags=(it.t||[]).map(t=>'<button class="tag '+tagCls(t)+'" data-tag="'+esc(t)+'">'+(t==='verificar'?'⚠ verificar':esc(t))+'</button>').join('');
+  const tags=(it.t||[]).map(t=>'<button class="tag '+tagCls(t)+'" data-tag="'+esc(t)+'">'
+    +(t==='verificar'?'⚠ verificar':(t==='novo'?'★ novo':esc(t)))+'</button>').join('');
   const meta=[it.a,it.d,it.p].filter(Boolean).join('<i>·</i>');
   const steps=RATES.map(r=>{
     const quem=quemHTML(it.id,r.k);
@@ -1348,6 +1353,115 @@ function nuvemPessoas(lista){
   });
 }
 
+/* ---------- ideias anotadas ----------
+   O campo do topo de cada cidade só guarda o que foi escrito. Nada de
+   pesquisa, nada de espera: a ideia entra na lista com o nome de quem
+   escreveu e fica visível para os dois. O card nasce depois, quando o
+   Bruno pede — e aí a ideia passa a "atendida", mostrando que virou
+   passeio de verdade. */
+function ideiasDa(cidade){return (store.ideias||[]).filter(i=>i.cidade===cidade);}
+function ideiaHTML(i){
+  const k=i.chave||chaveDoId[i.pessoa_id]||null;
+  const p=PEOPLE.filter(x=>x.k===k)[0];
+  const pronta=i.estado==='atendida';
+  return '<li class="ideia'+(pronta?' pronta':'')+'" data-id="'+esc(i.id)+'">'
+    +(p?'<span class="ideia-quem" style="--pc:var('+p.c+')" title="'+esc(p.n)+'">'+esc(p.n.charAt(0))+'</span>':'')
+    +'<span class="ideia-txt">'+esc(i.texto)+'</span>'
+    +'<span class="ideia-marca">'+(pronta?'virou card':'esperando')+'</span>'
+    +'<button class="ideia-x" type="button" title="Apagar" aria-label="Apagar ideia">×</button>'
+  +'</li>';
+}
+function renderIdeias(cidade){
+  const box=document.getElementById('ideias-'+cidade);if(!box)return;
+  const lista=ideiasDa(cidade);
+  box.innerHTML=
+    '<form class="ideia-form" data-cidade="'+cidade+'">'
+      +'<label class="ideia-l" for="ideia-'+cidade+'">Anotar uma ideia para '+esc(CITY[cidade])+'</label>'
+      +'<div class="ideia-linha">'
+        +'<input class="ideia-in" id="ideia-'+cidade+'" type="text" autocomplete="off" '
+          +'placeholder="Aquário gigante, bar de jazz em Kreuzberg…">'
+        +'<button class="ideia-b" type="submit">Anotar</button>'
+      +'</div>'
+    +'</form>'
+    +(lista.length?'<ul class="ideia-lista">'+lista.map(ideiaHTML).join('')+'</ul>':'');
+}
+function renderIdeiasTodas(){['berlin','paris','colonia'].forEach(renderIdeias);}
+function bindIdeias(box){
+  if(!box)return;
+  box.addEventListener('submit',e=>{
+    const f=e.target.closest('.ideia-form');if(!f)return;
+    e.preventDefault();
+    const inp=f.querySelector('.ideia-in');
+    const texto=(inp.value||'').trim();
+    if(!texto)return;
+    ideiaNova(f.dataset.cidade,texto);
+    inp.value='';
+  });
+  box.addEventListener('click',e=>{
+    const b=e.target.closest('.ideia-x');if(!b)return;
+    const li=b.closest('.ideia');if(li)ideiaApaga(li.dataset.id);
+  });
+}
+function ideiaNova(cidade,texto){
+  if(!Array.isArray(store.ideias))store.ideias=[];
+  store.ideias.unshift({
+    id:'tmp-'+Date.now()+'-'+Math.floor(Math.random()*1000),
+    pessoa_id:euId||null, chave:minhaChave||who,
+    cidade:cidade, texto:texto, estado:'pendente',
+    criado_em:new Date().toISOString(), pendente:true
+  });
+  profSalvaIdeias();
+  renderIdeias(cidade);
+  ideiaEmpurra();
+}
+function ideiaApaga(id){
+  const i=(store.ideias||[]).filter(x=>x.id===id)[0];if(!i)return;
+  if(!confirm('Apagar a ideia “'+i.texto+'”?'))return;
+  store.ideias=store.ideias.filter(x=>x.id!==id);
+  profSalvaIdeias();
+  renderIdeiasTodas();
+  if(!i.pendente&&euId&&window.NUVEM&&NUVEM.configurado){
+    NUVEM.apagarIdeia(i.id).catch(()=>{});
+  }
+}
+function profSalvaIdeias(){
+  try{localStorage.setItem(PROFKEY,JSON.stringify(store));}catch(e){}
+}
+/* sobe o que foi anotado e ainda não chegou no banco */
+async function ideiaEmpurra(){
+  if(!euId||!(window.NUVEM&&NUVEM.configurado))return;
+  const pendentes=(store.ideias||[]).filter(i=>i.pendente);
+  if(!pendentes.length)return;
+  let mudou=false;
+  for(const i of pendentes){
+    let volta=null;
+    try{volta=await NUVEM.criarIdeia({pessoa_id:euId,cidade:i.cidade,texto:i.texto});}
+    catch(e){break;}                       /* sem rede: fica pendente e tenta depois */
+    const nova=Array.isArray(volta)&&volta[0];
+    if(nova){
+      const pos=store.ideias.indexOf(i);
+      if(pos>=0)store.ideias[pos]=Object.assign({},nova,{chave:i.chave});
+      mudou=true;
+    }
+  }
+  if(mudou){profSalvaIdeias();renderIdeiasTodas();}
+}
+
+/* ---------- os cards nascidos de ideias ----------
+   Entram no catálogo como qualquer passeio: contam no total, aparecem na
+   categoria deles, podem ser marcados e ir para o roteiro. */
+function lugaresAplicar(lista){
+  if(!Array.isArray(lista))return;
+  lista.forEach(l=>{
+    if(byId[l.id])return;                  /* já está no catálogo */
+    const it={
+      id:l.id,c:l.cidade,k:l.categoria,n:l.nome,o:l.original||'',a:l.bairro||'',
+      d:l.duracao||'',p:l.preco||'',w:l.porque,t:(l.etiquetas||[]).slice()
+    };
+    DATA.push(it);byId[it.id]=it;
+  });
+}
+
 /* banco -> aparelho. O banco é a verdade: quem não tem linha fica sem nada.
    A exceção é quando eu mexi na tela durante a busca (manterMeu): aí o que
    está aqui é mais novo e não pode ser atropelado. */
@@ -1377,6 +1491,15 @@ function nuvemAplicar(dados,manterMeu){
     });
     d.plan=pl;
   });
+  /* ideias: o banco manda, mas o que foi anotado aqui e ainda não subiu
+     fica na frente, para não desaparecer da tela enquanto a rede volta */
+  const doBanco=(dados.ideias||[]).map(i=>Object.assign({},i,{chave:chaveDoId[i.pessoa_id]||null}));
+  const locais=(store.ideias||[]).filter(i=>i.pendente&&!doBanco.some(x=>x.id===i.id));
+  store.ideias=locais.concat(doBanco)
+    .sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em)));
+  profSalvaIdeias();
+  /* e os cards que já nasceram de ideias entram no catálogo */
+  lugaresAplicar(dados.lugares);
 }
 
 /* o que é meu, no formato do banco */
@@ -1427,7 +1550,7 @@ function nuvemRecarrega(){
   colLe(d.gavetas||{berlin:[],paris:[],colonia:[]});
   rendered.berlin=rendered.paris=rendered.colonia=false;
   if(['berlin','paris','colonia'].indexOf(cur)>=0){renderList(cur,false);rendered[cur]=true;}
-  renderPlan();stats();counts();spBuild();whoSync();nuvemAvisoRoteiro();
+  renderPlan();renderIdeiasTodas();stats();counts();spBuild();whoSync();nuvemAvisoRoteiro();
 }
 
 async function nuvemSincroniza(){
@@ -1458,6 +1581,8 @@ async function nuvemSincroniza(){
     nuvemGuarda({pessoa:euId,sincronizado:true,tempo:Date.now(),chaves:idDaChave});
     nuvemEstado='ok';nuvemErro='';
     nuvemRecarrega();
+    /* o que ficou anotado sem rede sobe agora */
+    await ideiaEmpurra();
   }catch(e){
     nuvemEstado=(e&&e.status===401)?'expirado':'offline';
     nuvemErro=(e&&e.message)||'';
@@ -1576,8 +1701,10 @@ renderSrc();
 renderChips('berlin');
 /* uma vez por lista: renderList troca o HTML, nao os ouvintes */
 ['berlin','paris','colonia'].forEach(c=>bindRows(document.getElementById('list-'+c)));
+['berlin','paris','colonia'].forEach(c=>bindIdeias(document.getElementById('ideias-'+c)));
 renderList('berlin',true);rendered['berlin']=true;
 bindPlan();renderPlan();
+renderIdeiasTodas();
 spOpen();
 whoSync();
 nuvemLiga();
