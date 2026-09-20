@@ -121,6 +121,22 @@ Comecei pelos 13 passeios da categoria "Só nesta data", que são os que afirmam
 
 **O tamanho do que falta:** dos 429 passeios, 22 carregam a etiqueta `verificar`, 73 mencionam horário ou abertura e 6 citam 2026 nominalmente. Os 13 da categoria `data` estão feitos. O próximo lote natural são os 22 com `verificar`, depois os que dão horário de funcionamento.
 
+### Revisão do catálogo — lote 2 (20/09/2026): os 22 marcados com `verificar`
+
+A etiqueta `verificar` funciona como fila de trabalho: é o próprio catálogo dizendo o que ainda não foi conferido. Cada item foi pesquisado e, quando dava, confirmado na fonte do lugar. **Cinco estavam desatualizados, e todos os cinco do mesmo jeito — lugares que não existem mais como o texto promete:**
+
+1. **Museum Berggruen** — fechado desde **setembro de 2022** para a reforma do Stülerbau, com reabertura prevista só para o **fim de 2026 ou 2027**. O texto dizia "provavelmente fechado"; agora diz que está fechado e manda para o Sammlung Scharf-Gerstenberg ao lado.
+2. **Julia Stoschek Collection (Berlim)** — a sede de Berlim **fechou**; a coleção continua em Düsseldorf. O texto antigo ainda dizia "confirme os dias de abertura".
+3. **Römisch-Germanisches Museum (Colônia)** — fechado para reforma há anos, com reabertura prevista **depois de 2030**. Era apresentado como visitação normal.
+4. **Roda-gigante do Rheinauhafen (Colônia)** — é sazonal e a temporada de 2026 vai de **14/05 a 06/09**. Em novembro **não está em operação**.
+5. **Tour Saint-Jacques (Paris)** — **fechada para obras**, e mesmo em ano normal a temporada vai de meados de maio a meados de novembro, de quarta a domingo.
+
+**Confirmados e com a etiqueta removida** (a etiqueta só sai quando o item é conferido): Paris Photo (site oficial da feira), **Made in France / MIF Expo — 14ª edição, 12 a 15 de novembro de 2026, Porte de Versailles, Hall 7**, Les Égouts de Paris (reaberto e em funcionamento), Balão de Paris (opera, fecha conforme o vento) e **Oper Köln** — que voltou ao Offenbachplatz na temporada 2026/27, então o texto que mandava confirmar outra sala saiu.
+
+**O que continua marcado:** 12 itens, entre os que eu não consegui confirmar (Kölnisches Stadtmuseum, Petite Ceinture, o ciclo Wagner na Ópera, mercados e iluminações de Natal de Paris, o tour noturno de bicicleta, a guinguette) e os que são incertos por natureza (Spreepark, que está em obra com visitas guiadas em datas marcadas, e os dois já corrigidos no lote 1, que mantêm a etiqueta por precaução).
+
+**Efeito no app:** a etiqueta `fechado` (que já existia no vocabulário e pinta em amarelo de aviso) passou a marcar cinco itens, e o total de `verificar` caiu de 22 para 12. Toda a revisão foi feita em `app/dados.js` e `fonte/dados.js` ao mesmo tempo, e o app foi renderizado depois para conferir que nada quebrou (0 erro de console, 429 passeios).
+
   Verificado no Chrome headless, em cinco passos: na abertura sem sessão o menu tem 0 itens e está escondido, o campo de e-mail não existe mais, os dois botões aparecem e o rótulo é "Quem está entrando?"; Escape não fecha a abertura; escolher Lucas deixa o botão aceso e o rótulo "Agora a senha de Lucas"; senha errada devolve "senha não confere" sem entrar; senha certa entra, o rótulo vira "Você é" e o menu aparece com os 6 destinos e "Sincronizado com a nuvem". Numa segunda bateria, como Lucas: `pode_editar_roteiro` falso, o corpo ganha `sem-roteiro`, o aviso "O roteiro é organizado pelo Bruno" aparece na aba do roteiro, o botão de encaixar existe no HTML mas o CSS o esconde, e a marcação dele chega no banco como dele.
 
 ## Product Principles
