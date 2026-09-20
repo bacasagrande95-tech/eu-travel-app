@@ -1450,8 +1450,11 @@ function nuvemPinta(){
   const erro=document.getElementById('sp-erro');
   const dentro=!!euId&&nuvemEstado!=='expirado';
   if(form)form.hidden=dentro;
-  if(rot)rot.textContent=dentro?'Você é':'Entre para marcar';
-  if(seg)seg.innerHTML=dentro?fichaDeQuemEntrou():'';
+  const ficha=dentro?fichaDeQuemEntrou():'';
+  /* sem rede e sem ter sincronizado ainda, o banco não disse quem é:
+     aí a abertura assume menos em vez de mostrar um rótulo vazio */
+  if(rot)rot.textContent=dentro?(ficha?'Você é':'Sessão guardada'):'Entre para marcar';
+  if(seg)seg.innerHTML=ficha;
   if(erro){
     if(nuvemErro&&!dentro){erro.hidden=false;erro.textContent=nuvemErro;}
     else{erro.hidden=true;erro.textContent='';}
