@@ -96,6 +96,10 @@ Português do Brasil. Formatação brasileira (vírgula decimal, R$).
 
 - **Projeto virou repositório (19/09/2026):** `git init` na pasta, primeiro commit com 26 arquivos, e `.github/workflows/publicar.yml` publicando **só a pasta `app/`** no GitHub Pages — o resto (notas de produto, fontes, SQL) fica fora do ar. O app não usa caminho absoluto nenhum, então funciona sob o subcaminho do Pages. O `git init` precisou ser feito fora do sandbox: por dentro dele o Windows trata a pasta como de outro dono e o Git recusa com "dubious ownership".
 
+- **No ar em 19/09/2026:** o app está publicado em **https://bacasagrande95-tech.github.io/eu-travel-app/** (repositório `bacasagrande95-tech/eu-travel-app`). A primeira execução do workflow falhou no `configure-pages`; o Pages ainda não existia no repositório, e a criação precisou de uma chamada de API — `POST /repos/{owner}/{repo}/pages` com `{"build_type":"workflow"}` devolve 201; o `PUT` na mesma rota devolve 404 enquanto o site não existe, o que confunde o diagnóstico. Depois disso o disparo manual do workflow (também por API) concluiu com sucesso.
+
+- **Entrada verificada no endereço publicado (19/09/2026):** o Chrome headless abriu a URL real, a abertura apareceu com o formulário ("Entre para marcar"), a entrada como Bruno passou ("quem é: Bruno", roteiro liberado, "Sincronizado com a nuvem"), e uma marcação feita ali chegou no banco — conferida por leitura direta da API e depois apagada. É a mesma bateria que já rodava em `file://`, agora pelo caminho de `https` que o celular vai usar, o que também prova o CORS da origem do Pages.
+
 ## Product Principles
 
 1. Amplitude antes de curadoria: o catálogo existe para revelar gosto, não para decidir por ele.
