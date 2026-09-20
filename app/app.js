@@ -994,8 +994,9 @@ let spIdx=0,spTimer=null,spBoot=null,spOn=true;
 function nomeDe(k){const p=PEOPLE.filter(x=>x.k===k)[0];return p?p.n:k;}
 function spSeg(){
   const s=document.getElementById('sp-seg');if(!s)return;
-  /* logado, quem escreve na abertura é a nuvem */
-  if(euId){nuvemPinta();return;}
+  /* com o banco ligado, quem desenha o bloco de entrada é a nuvem;
+     sem ele, o app volta ao seletor de perfis de antes */
+  if(window.NUVEM&&NUVEM.configurado){nuvemPinta();return;}
   s.innerHTML=PEOPLE.map(p=>
     '<button type="button" data-p="'+p.k+'" style="--pc:var('+p.c+')" aria-pressed="'+(p.k===who?'true':'false')+'">'+esc(p.n)+'</button>'
   ).join('');
@@ -1028,10 +1029,19 @@ function profileSet(k){
 }
 document.getElementById('sp-seg').addEventListener('click',e=>{
   const b=e.target.closest('button[data-p]');
-  if(b) profileSet(b.dataset.p);
+  if(!b)return;
+  if(window.NUVEM&&NUVEM.configurado){
+    /* aqui o botão não troca de perfil: escolhe quem vai entrar */
+    if(!euId) nuvemEscolhe(b.dataset.p);
+    return;
+  }
+  profileSet(b.dataset.p);
 });
 function spBuild(){
   const m=document.getElementById('sp-menu');if(!m)return;
+  /* sem entrar, a abertura não oferece destino nenhum: ela é a página inteira */
+  if(!nuvemDentro()){m.innerHTML='';m.hidden=true;return;}
+  m.hidden=false;
   let marked=0;DATA.forEach(it=>{if(state[it.id]&&state[it.id].r)marked++;});
   let nsrc=0;Object.keys(SRC).forEach(k=>{nsrc+=(SRC[k]||[]).length;});
   const rows=[
@@ -1081,6 +1091,8 @@ function spOpen(){
 }
 function spGo(v){
   const sp=document.getElementById('splash');
+  /* enquanto ninguém entrou, a abertura não se abre para o app */
+  if(!nuvemDentro())return;
   document.body.classList.remove('lock');
   if(!spOn||!sp||sp.hidden){show(v,true);return;}
   spOn=false;
@@ -1285,6 +1297,22 @@ const CHAVENUVEM='europa-nov2026-nuvem-v1';
 let euId=null,minhaChave=null,podeRoteiro=false;
 let chaveDoId={},idDaChave={};
 let nuvemEstado='off',nuvemErro='',nuvemSincronizado=false,nuvemTimer=null;
+/* quem a pessoa escolheu na abertura, antes de digitar a senha */
+let quemEntra=null;
+
+/* sem o banco configurado, o app é local como sempre foi e não há o que
+   trancar; com o banco, a abertura só abre depois de entrar */
+function nuvemDentro(){
+  if(!(window.NUVEM&&NUVEM.configurado))return true;
+  return !!euId&&nuvemEstado!=='expirado';
+}
+function nuvemEscolhe(k){
+  if(!PEOPLE.some(p=>p.k===k))return;
+  quemEntra=k;nuvemErro='';
+  nuvemPinta();
+  const s=document.getElementById('sp-senha');
+  if(s&&!document.getElementById('sp-login').hidden)s.focus();
+}
 /* conta cada marcação minha: serve para perceber se alguém marcou
    enquanto uma sincronização estava no ar */
 let nuvemVersao=0;
@@ -1448,13 +1476,21 @@ function nuvemPinta(){
   const form=document.getElementById('sp-login');
   const aviso=document.getElementById('sp-sync');
   const erro=document.getElementById('sp-erro');
-  const dentro=!!euId&&nuvemEstado!=='expirado';
+  const dentro=nuvemDentro();
   if(form)form.hidden=dentro;
   const ficha=dentro?fichaDeQuemEntrou():'';
-  /* sem rede e sem ter sincronizado ainda, o banco não disse quem é:
-     aí a abertura assume menos em vez de mostrar um rótulo vazio */
-  if(rot)rot.textContent=dentro?(ficha?'Você é':'Sessão guardada'):'Entre para marcar';
-  if(seg)seg.innerHTML=ficha;
+  if(seg){
+    /* entrando: os botões escolhem quem vai digitar a senha.
+       dentro: fica só quem entrou. Sem rede e sem ter sincronizado ainda o
+       banco não disse quem é, e a abertura assume menos em vez de inventar. */
+    seg.innerHTML=dentro?ficha:(PEOPLE.map(p=>
+      '<button type="button" data-p="'+p.k+'" style="--pc:var('+p.c+')" aria-pressed="'+(p.k===quemEntra?'true':'false')+'">'+esc(p.n)+'</button>'
+    ).join(''));
+  }
+  if(rot)rot.textContent=dentro?(ficha?'Você é':'Sessão guardada')
+    :(quemEntra?('Agora a senha de '+nomeDe(quemEntra)):'Quem está entrando?');
+  const b=document.getElementById('sp-entrar');
+  if(b)b.disabled=!dentro&&!quemEntra;
   if(erro){
     if(nuvemErro&&!dentro){erro.hidden=false;erro.textContent=nuvemErro;}
     else{erro.hidden=true;erro.textContent='';}
@@ -1516,20 +1552,20 @@ function nuvemLiga(){
 }
 document.getElementById('sp-login').addEventListener('submit',async e=>{
   e.preventDefault();
-  const email=(document.getElementById('sp-email').value||'').trim();
   const senha=document.getElementById('sp-senha').value||'';
   const b=document.getElementById('sp-entrar');
-  if(!email||!senha)return;
+  if(!quemEntra){nuvemErro='escolha quem está entrando';nuvemPinta();return;}
+  if(!senha)return;
   nuvemEstado='entrando';nuvemErro='';nuvemPinta();
   if(b){b.disabled=true;b.textContent='Entrando…';}
   try{
-    const u=await NUVEM.entrar(email,senha);
+    const u=await NUVEM.entrarComo(quemEntra,senha);
     euId=u.id;minhaChave=null;
     await nuvemSincroniza();
     if(nuvemEstado==='ok')document.getElementById('sp-senha').value='';
   }catch(err){
     nuvemEstado='off';
-    nuvemErro=(err&&err.message)||'não deu para entrar';
+    nuvemErro=(err&&err.status===400)?'senha não confere':((err&&err.message)||'não deu para entrar');
   }
   if(b){b.disabled=false;b.textContent='Entrar';}
   nuvemPinta();

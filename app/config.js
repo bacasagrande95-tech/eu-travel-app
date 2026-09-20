@@ -10,5 +10,10 @@
    ============================================================ */
 window.SUPABASE = {
   url: 'https://ulznovyrflgglroglymv.supabase.co',
-  chave: 'sb_publishable_9hNheMnVK-R8dkn7Tu-_0Q_97fhBThK'
+  chave: 'sb_publishable_9hNheMnVK-R8dkn7Tu-_0Q_97fhBThK',
+
+  /* Ninguém digita e-mail para entrar: escolhe o nome e digita a senha.
+     O e-mail de cada pessoa é o nome em minúsculas neste domínio — é o que
+     liga o botão "Bruno" à conta que existe no Supabase. */
+  dominio: 'viagem.local'
 };

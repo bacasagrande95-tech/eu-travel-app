@@ -67,6 +67,15 @@ window.NUVEM=(function(){
     return j.user;
   }
 
+  /* a tela não pede e-mail: pede o nome. O e-mail é montado aqui, sempre
+     no mesmo padrão, e é a única coisa que liga o botão à conta do banco. */
+  function emailDe(nome){
+    return String(nome||'').toLowerCase().trim()+'@'+(CFG.dominio||'viagem.local');
+  }
+  async function entrarComo(nome,senha){
+    return entrar(emailDe(nome),senha);
+  }
+
   async function renova(){
     const s=lerSessao();
     if(!s||!s.refresh_token)throw erroDe(401,'sem sessão para renovar');
@@ -141,6 +150,8 @@ window.NUVEM=(function(){
   return {
     configurado:configurado,
     entrar:entrar,
+    entrarComo:entrarComo,
+    emailDe:emailDe,
     sair:sair,
     renova:renova,
     puxar:puxar,

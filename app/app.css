@@ -686,6 +686,7 @@ body.sem-roteiro .pbtn{display:none}
 }
 
 .sp-menu{margin-top:26px;display:grid;gap:6px}
+.sp-menu[hidden]{display:none}
 .sp-item{
   display:flex;align-items:center;gap:11px;width:100%;text-align:left;
   background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 14px;
