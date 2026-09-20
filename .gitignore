@@ -1,0 +1,14 @@
+# sobras do sistema e de editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*.bak-*
+*~
+
+# pastas de ferramentas
+node_modules/
+.cache/
+
+# nada de segredo aqui: a chave do app é a publicável, feita para ficar à vista

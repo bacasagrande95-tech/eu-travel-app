@@ -1,0 +1,101 @@
+# Product
+
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
+## Stack
+
+Site estático em pasta, sem framework e **sem build**: `app/index.html`, `app/app.css`, `app/app.js`, `app/dados.js`, `app/img/` e `app/font/`. Abre por `file://` dando dois cliques no `index.html` e é a mesma pasta que vai para o host. Os scripts são clássicos, de propósito: `type="module"` quebraria a abertura local por `file://`, que é o que sustenta o uso offline.
+
+Até 19/09/2026 era um arquivo único de 1,2 MB com foto e fonte em base64, montado por `fonte/montar.js` a partir de `fonte/casca.html`. A pasta `fonte/` e o `viagem-europa-nov-2026.html` continuam no repositório como referência, mas **a fonte de verdade passou a ser `app/`** — editar `fonte/casca.html` não tem mais efeito.
+
+O ganho da divisão: o que o navegador precisa baixar para desenhar a tela caiu de 1228 KB para **303 KB** (`index.html` + `app.css` + `app.js` + `dados.js`), e as 3 fotos e as 2 fontes passam a ser arquivos comuns, cacheados separadamente pela CDN em vez de viajarem embutidos em toda abertura.
+
+## Users
+
+Bruno, e agora também **Lucas**. Bruno é empresário brasileiro de e-commerce planejando uma viagem à Europa de 01 a 18 de novembro de 2026, com base em Colônia e duas incursões de trem (Berlim e Paris). Usa sozinho, principalmente **no celular**, muitas vezes em pé, na rua ou no metrô, com frio e sem sinal confiável. Sessões curtas, de poucos minutos, entre um compromisso e outro. O Lucas é o amigo que vai receber uma cópia do arquivo, preencher a seleção dele com calma no computador e devolver o JSON para os dois compatibilizarem os roteiros — então o app precisa deixar claro, o tempo todo, de quem é o dado na tela, e nunca sobrescrever o do outro.
+
+## Product Purpose
+
+É um catálogo pessoal de decisão com um roteiro acoplado. Existe para ele percorrer uma lista ampla de passeios, registrar o quanto cada um interessa, **montar o roteiro dia a dia** e devolver as duas coisas para o assistente calibrar a próxima rodada. Sucesso = ele avalia uma parte relevante dos itens, distribui os escolhidos pelos 18 dias e exporta um resumo que revela seus gostos e a ordem que ele imaginou.
+
+## Positioning
+
+Amplitude antes de curadoria, com **gradação de interesse em quatro níveis** ("Quero muito / Quero / Talvez / Passo") mais nota livre por item, e uma exportação desenhada para ensinar preferências por iteração. Uma lista de "10 melhores coisas para fazer em Berlim" não consegue fazer isso: não dá material para calibrar gosto e não captura o sinal negativo.
+
+## Operating Context
+
+Celular em primeiro lugar, offline, uma mão só. Texto em português sobre lugares com nome em alemão e francês. Provavelmente uma passada longa antes da viagem e consultas curtas durante. O arquivo precisa sobreviver a ser aberto no avião e no metrô sem rede.
+
+## Capabilities and Constraints
+
+- **Dois perfis, Bruno e Lucas**, escolhidos na tela de abertura num seletor de dois botões (Bruno em verde, Lucas em violeta). Cada um guarda **marcações, notas, roteiro e gavetas separados**; trocar de perfil recarrega tudo sem misturar. O perfil ativo fica salvo e volta no próximo carregamento. Um selo com o nome aparece nas abas Roteiro e Gostos, para nunca haver dúvida de quem são os dados na tela.
+- **Envio e fusão entre as duas pessoas:** o JSON exportado carrega `perfil` e `nome`, e ao importar o arquivo vai **para o perfil do dono do arquivo**, não para o que está aberto. É assim que o Lucas devolve o preenchimento dele e o Bruno junta sem sobrescrever o próprio.
+- Pasta estática que roda sem servidor e sem rede quando aberta local.
+- **Tela de abertura** que cobre o app ao carregar: foto em tela cheia revezando entre as três cidades (a cada 5,2s, com indicador de três traços), título "Europa" subindo letra a letra, a linha do tempo da viagem e um **menu de seis destinos** com contagem por cidade. Fecha ao escolher um destino ou com Esc; reabre pelo ícone de casa na barra do topo. As fotos são reaproveitadas dos cabeçalhos em tempo de execução, então não há byte duplicado no arquivo.
+- **Gavetas por categoria**: cada seção do catálogo abre e fecha ao toque, com seta que gira e altura animada. Estado guardado em `localStorage` (`europa-nov2026-gavetas-v1`), mais um botão "Recolher tudo / Abrir tudo". Com busca ou filtro ativo as gavetas abrem à força, para nenhum resultado ficar escondido.
+- 429 passeios, 12 categorias, 3 cidades (184 Berlim, 176 Paris, 69 Colônia).
+- **Id estável por passeio (19/09/2026).** Cada passeio tem um `id` próprio no catálogo, do tipo `berlin-neues-museum-busto-de-nefertiti`, gravado no dado. Antes o id era o índice do array (`i0`, `i1`…) atribuído em tempo de execução: bastava reordenar o catálogo, inserir ou remover um passeio para **todas** as marcações e o roteiro apontarem para o lugar errado — inclusive num JSON importado. Isso virou pré-requisito do banco, onde a linha precisa identificar o passeio de forma durável.
+- **Conversão do que já estava salvo:** na primeira abertura o app converte as chaves antigas (`i0`…) para os ids novos, em ambos os perfis, no estado e no roteiro, e grava. O mesmo acontece no JSON importado, que pode ter sido exportado antes da troca. A conversão é idempotente: rodar de novo não altera nada.
+- Marcação em quatro níveis, nota por item, salvamento em `localStorage`.
+- Aba **Roteiro**: visão do mês de novembro de 2026 (18 dias de viagem, 1 a 18), dia abre e fecha ao toque, e uma caixa "sem dia definido" como área de espera.
+- Arrasto por **Pointer Events**, que funciona com dedo, mouse e caneta. Durante o arrasto aparece uma faixa fixa de dias na base da tela — o alvo vale independente da rolagem. Reordenar dentro do dia é arrastar na própria lista; também dá para soltar direto na célula do mês.
+- Sem arrasto (teclado): setas sobem/descem na ordem, setas laterais trocam de dia, Delete tira do roteiro.
+- Itens com data escrita no próprio nome (Mauerfall, Carnaval 11/11, Paris Photo) entram **já encaixados no dia certo**, com a data marcada no item; se forem movidos para outro dia, aparece o aviso.
+- Roteiro salvo em `localStorage` sob a chave `europa-nov2026-plan-v1`, separada das marcações, e incluído no resumo em texto e no JSON exportado.
+- Exportação em texto legível e em JSON, mais reimportação do JSON.
+- Links de mapa por item abrem o Google Maps (exigem rede; por isso são secundários).
+- Sem framework, sem dependência externa, sem passo de build.
+- Fotos como arquivo em `app/img/` e fontes em `app/font/`. Geração de imagem indisponível nesta conta; as fotos são três arquivos do Wikimedia Commons com licença livre e crédito obrigatório.
+
+## Brand Commitments
+
+Português do Brasil. Formatação brasileira (vírgula decimal, R$).
+
+**Compromisso visual duradouro (16/09/2026, escolha explícita do usuário):** na rodada de direção, o usuário tomou a **saída padrão** — convenção como compromisso. A execução é o padrão da categoria jogado a sério, **sem ferroada irônica e sem conceito escondido**. A régua de acabamento são os produtos que ele nomeou: **Things 3** (lista pessoal: tipografia e espaçamento impecáveis, uma animação curta por interação, hierarquia só por peso e tamanho, nada de borda decorativa) e **Airbnb wishlist / Are.na** (conteúdo primeiro, cromo quase ausente, foto e texto fazem o desenho, listas longas que continuam agradáveis de rolar, transições discretas, sensação de coleção pessoal). O pedido mínimo que continua valendo: minimalista, bonito, com foto das cidades e animação de entrada.
+
+**Tema claro fixo (19/09/2026, escolha explícita do usuário):** o arquivo **não** responde a `prefers-color-scheme` — não sobrou nenhuma ocorrência disso no código. Ele tinha um bloco escuro completo; o usuário viu o app trocar de tema sozinho e recusou: quer claro, sempre. No mesmo dia ele reviu a decisão de "nada de borda decorativa", porque o resultado estava "muito branco no branco e no vazio", com etiquetas e seções que eram "só texto solto". O desenho passou a ter: fundo de página levemente tingido (`#F1F2EF`) com o conteúdo em **cartões brancos**, **uma cor por categoria** (12 cores no cabeçalho, no ícone e no selo de contagem) e **etiquetas como chips**, tingidas por família de sentido — grátis/trilha em verde, noite/madrugada em índigo, comida/mercado em âmbar, arte/museu em violeta, música/balada em rosa, chuva/rio em azul, verificar/evitar em vermelho e "imperdível" em verde cheio. Mais elemento visual, a mesma calma: hierarquia ainda por peso, tamanho e espaço, sem sombra pesada e sem gradiente decorativo.
+
+## Evidence on Hand
+
+- Catálogo real e verificado: fechamentos conferidos (Pergamonmuseum fechado até 2027, Centre Pompidou 2025–2030, Musée d'Orsay aberto sob obras) e eventos datados (Paris Photo 12–15/11/2026).
+- 99 fontes de pesquisa turística, oficiais e comunitárias.
+- Fotos com procedência: Berlin — Daniel Cox, CC BY-SA 4.0; Paris — Jebulon, CC0; Colônia — Thomas Wolf (Der Wolf im Wald), CC BY-SA 3.0. Todas via Wikimedia Commons.
+- **Ausências que não podem ser inventadas:** preços exatos, horários de funcionamento, avaliações, contagem de visitantes, depoimentos. Tudo que depende da data é marcado com a tag "verificar" em vez de afirmado como certo.
+- **Roteiro verificado em 19/09/2026** com Chrome headless (CDP), viewport de celular 390×844 e 360×780: 35 células de mês, 18 dias de viagem, arrasto por toque do pool para a faixa, do pool para a célula do mês e do dia de volta para o pool; reordenação dentro do dia com indicador de inserção; setas do teclado; resumo com o bloco do roteiro; ida e volta do JSON; persistência depois de recarregar; zero exceções e zero erros de console. Nenhuma linha acima de 5% de opacidade ficou invisível depois da rolagem.
+- **Dois defeitos encontrados e corrigidos nessa verificação:** a classe `.out` dos dias fora da viagem colidia com o `.out` do `<textarea>` e herdava `border-radius:11px` e `margin-top:18px`; e o terceiro botão de ícone na linha do catálogo estourava a largura em 360px (agora os ícones agrupam e quebram linha, medido em 184 linhas sem estouro).
+
+- **Tema e cor conferidos em 19/09/2026** no mesmo Chrome headless: emulando `prefers-color-scheme: dark` a página continua com fundo `rgb(241,242,239)` e texto `rgb(20,22,26)`, idêntica ao modo claro, e não sobrou nenhuma ocorrência de `prefers-color-scheme` no arquivo. As 36 seções do catálogo recebem cor de categoria, 1335 de 1785 etiquetas caem numa família colorida, e as 99 pílulas de fonte saem em verde (oficial), violeta (comunidade) e azul (ferramenta).
+- **Terceiro defeito encontrado e corrigido (19/09/2026):** ao trocar a lista plana por cartões, a largura útil da linha caiu 32px e revelou um problema antigo — `.r-body` é item de grid com `min-width:auto` e a linha de bairro/duração/preço tem `white-space:nowrap`, então a coluna se recusava a encolher e estourava a tela. Corrigido com `min-width:0` no corpo da linha e quebra de linha na meta em telas pequenas. Medido depois: zero linhas estourando em 360px e em 320px. Nesse mesmo ajuste, o selo de contagem da seção e a pílula de tipo de fonte apareceram esticados (item de grid sem `justify-self`), e as duas foram corrigidas.
+
+- **Tela de abertura e gavetas verificadas em 19/09/2026**, no mesmo Chrome headless: a abertura cobre a tela inteira, as três fotos vêm dos cabeçalhos (as três com `src` idêntico ao do herói, nenhum byte novo no arquivo), o menu traz os seis destinos com as contagens certas, escolher "Paris" fecha a abertura e troca de aba, o ícone de casa reabre com a animação e Esc fecha. Nas gavetas: 12 seções por cidade, fechar leva a altura a 0 com `aria-expanded="false"`, o estado volta depois de recarregar, "Recolher tudo" fecha as 12 e a busca reabre à força. Zero exceções e zero erros de console.
+- **Quarto defeito encontrado e corrigido (19/09/2026):** `bindRows` era chamado dentro de `renderList`, então cada nova renderização empilhava outro conjunto de ouvintes no mesmo elemento. Com um número par de renderizações, clicar em "Quero muito" se anulava — ligava e desligava. Agora os ouvintes são presos uma vez por lista, na inicialização. Verificado: depois de três renderizações extras, um clique grava `{"r":"must"}` e o segundo clique limpa, exatamente uma vez cada.
+
+- **Perfis verificados em 19/09/2026** no mesmo Chrome headless: a migração leva as marcações, o roteiro e as gavetas que já existiam para o perfil do Bruno e deixa o Lucas zerado; Luca marca 3 itens e o Bruno continua com os 4 dele; voltar para o Bruno devolve 4 marcados com a nota original intacta; o perfil ativo sobrevive ao recarregamento; o resumo sai como "SELEÇÃO DE LUCAS" e o JSON carrega `perfil:"lucas"`; importar o arquivo do Lucas cai no perfil dele e **não toca** nos 4 itens do Bruno. Zero exceções e zero erros de console.
+- **Abertura recentrada (19/09/2026):** o texto abaixo do título era conversa de chat e saiu; no lugar entrou o seletor de perfil. Medido em 390×844: 33px de respiro acima e 29px abaixo do bloco, sem rolagem. Na primeira tentativa o conjunto não caberia, porque a foto tinha crescido para 44vh — voltou para 36vh (300px) e passou a sobrar 62px, o suficiente para a margem do indicador de home do iPhone.
+
+- **Divisão em pasta verificada em 19/09/2026** no mesmo Chrome headless, agora contra `app/index.html` em `file://`: as duas fontes carregam (`document.fonts.size = 2`, Archivo e Archivo Narrow), as três fotos do cabeçalho e as três da abertura carregam com dimensão real (1280×853, 1280×660, 1280×760), **zero requisições falhadas e zero respostas HTTP de erro**. A bateria completa e a bateria de perfis rodaram de novo nesse caminho com resultado idêntico ao do arquivo único: 184 linhas, 35 células de mês, os três arrastos por toque, reordenação, teclado, exportação, importação por perfil, persistência, zero estouro em 360px e 320px, tema fixo. Zero exceções e zero erros de console.
+
+- **Ids estáveis verificados em 19/09/2026** contra `app/index.html`: 429 ids, 429 únicos, nenhum vazio, nenhum sobrou no formato de índice. Simulei um salvamento antigo (`{'i0':{r:'must',n:'nota antiga'}}` e roteiro com `i0` no dia e `i7` no pool): depois de recarregar, a marcação apareceu no passeio certo (`DATA[0].id`, o Mauerfall), **com a nota preservada**, o roteiro apontando para o slug correto, e nenhuma ocorrência de índice sobrando no armazenamento. A bateria completa rodou de novo: arrasto por toque nos três alvos, reordenação, teclado, exportação, importação, persistência, zero estouro em 360px e 320px, tema fixo. Zero exceções e zero erros de console.
+- **Decisão de acesso ao Supabase (19/09/2026):** o fluxo de autorização do plugin MCP não está disponível na interface do usuário, então ele foi descartado. Verificado que o registro npm responde (CLI `supabase` 2.117.0 disponível), o que deixa dois caminhos sem o plugin: (a) o usuário cola o SQL no SQL Editor do painel e me passa apenas a URL do projeto e a chave publicável, que são públicas por projeto; (b) instalar a CLI e usar um token de acesso pessoal, o que me deixa operar o banco direto.
+
+- **Acesso ao Supabase resolvido (19/09/2026):** o MCP não estava quebrado por falta de login — o registro dinâmico devolvia HTTP 400 porque o Codex pedia os 24 escopos do servidor de autorização e a Supabase só aceita os 13 do recurso MCP. Com `scopes` declarado em `~/.codex/config.toml`, o fluxo completa e as ferramentas do Supabase passam a existir na sessão. O conector adicionado no ChatGPT web é outra coisa e não vale para o app local.
+
+- **Banco montado e regras de convivência testadas (19/09/2026):** três migrations aplicadas no projeto `ulznovyrflgglroglymv` — `esquema_inicial`, `search_path_fixo_na_funcao` e `compartilha_leituras_e_dono_do_roteiro`. A decisão do casal virou política no banco: **avaliações são leitura compartilhada e escrita própria**, e **o roteiro é leitura compartilhada com escrita só de quem tem `pode_editar_roteiro`** na tabela `participante`. A tabela `participante` também guarda nome e cor, para o app não ter essas informações escritas no código. Verificado com dois logins simulados dentro de uma transação desfeita no fim: o Lucas enxerga as 2 avaliações e o roteiro, grava a própria marcação, tem recusa `42501` ao tentar gravar em nome do Bruno e ao tentar escrever no roteiro, e não alcança nenhuma linha do Bruno no `update`; o Bruno enxerga as 3 (incluindo a recém-gravada pelo Lucas) e escreve no roteiro sem erro. Advisors de segurança vazios, 0 usuários e 0 linhas ao final.
+
+- **Bolinha de quem gostou (19/09/2026):** cada um dos quatro botões de gosto passou a mostrar, ao lado do rótulo, as pessoas que escolheram aquele nível — inclusive a própria. A foto vem de `app/img/pessoas/<perfil>.jpg`; enquanto o arquivo não existe, a bolinha mostra a inicial na cor da pessoa (verde para Bruno, violeta para Lucas), porque o ouvinte de erro tira a imagem quebrada e deixa a letra. Verificado no Chrome headless contra `app/index.html` em `file://`, com marcações dos dois perfis semeadas no `localStorage`: "Quero muito" com os dois aparece com duas bolinhas (B e L), e clicar em "Quero" move só a bolinha do Bruno na hora, sem recarregar a lista e sem tocar na linha vizinha. Largura medida: a soma dos quatro botões (258–302px) cabe na caixa (267–311px) e a linha não quebra; sem rolagem lateral, o maior elemento continua sendo a foto do cabeçalho.
+
+## Product Principles
+
+1. Amplitude antes de curadoria: o catálogo existe para revelar gosto, não para decidir por ele.
+2. Toda interação tem que funcionar no celular, offline, no frio, com um polegar.
+3. Marcar é barato; o valor está no gradiente de interesse e na nota escrita.
+4. A exportação é o produto real — o resto é meio.
+5. Nada dependente de data é afirmado como certo.
+
+## Accessibility & Inclusion
+
+Uso em celular, uma mão, muitas vezes com luva e sem rede. Contraste de texto adequado, alvos de toque generosos, e respeito a `prefers-reduced-motion` para quem desliga animação no sistema.
