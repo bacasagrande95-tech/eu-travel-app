@@ -110,6 +110,17 @@ Português do Brasil. Formatação brasileira (vírgula decimal, R$).
 
 - **Sobre a revisão do catálogo (20/09/2026):** o usuário ativou uma busca na web no app do ChatGPT, mas **isso não chega até aqui**: nesta sessão não existe ferramenta de busca, só as do Supabase. A revisão então é feita pelo shell, buscando e abrindo as páginas oficiais — mais lento, porém com fonte de verdade verificável.
 
+### Revisão do catálogo — lote 1 (20/09/2026): as afirmações com data
+
+Comecei pelos 13 passeios da categoria "Só nesta data", que são os que afirmam fato sobre o mundo, mais o aviso do cabeçalho de Berlim. **Dois problemas encontrados, os dois corrigidos nos quatro arquivos** (`app/dados.js`, `fonte/dados.js`, `app/index.html`, `fonte/casca.html`):
+
+1. **Pergamonmuseum — estava errado, e era o aviso mais visível do app.** O texto dizia "fechado **até 2027**", em três lugares (cabeçalho de Berlim, a lista de avisos e a ficha da Ilha dos Museus). A fonte diz outra coisa: o museu fechou para visitantes em **outubro de 2023** e deve ficar fechado por **14 a 20 anos (até 2037–2043)**; o que reabre por volta de **2027 é só a ala norte**. Agora o texto diz isso, nos três lugares.
+2. **Mercado de Natal da Landsberger Allee — a data estava certa, o superlativo não.** As datas (31/10 a 27/12) foram **confirmadas para 2026** na fonte do evento. Mas o texto dizia ser "o único grande mercado aberto na sua janela": os clássicos de Berlim só abrem em **23/11/2026** (o que sustenta parte da ideia), porém o **Winterwelt do Potsdamer Platz** aparece numa fonte como aberto de 31/10 a 31/12 e noutra como abrindo em dezembro — fontes em conflito. O texto agora diz que pega a janela inteira, informa a data dos clássicos e manda conferir o Potsdamer Platz em vez de afirmar exclusividade, com a etiqueta `verificar`.
+
+**O que passou limpo na verificação:** Paris Photo 2026 é mesmo **12 a 15 de novembro no Grand Palais** (confirmado no site oficial da feira); 09/11/2026 cai numa **segunda**, 08/11 num **domingo** e 13/11 numa **sexta** — as três afirmações de dia da semana do catálogo estão certas; o Carnaval de Colônia abrir às 11h11 do dia 11/11 é fato estável.
+
+**O tamanho do que falta:** dos 429 passeios, 22 carregam a etiqueta `verificar`, 73 mencionam horário ou abertura e 6 citam 2026 nominalmente. Os 13 da categoria `data` estão feitos. O próximo lote natural são os 22 com `verificar`, depois os que dão horário de funcionamento.
+
   Verificado no Chrome headless, em cinco passos: na abertura sem sessão o menu tem 0 itens e está escondido, o campo de e-mail não existe mais, os dois botões aparecem e o rótulo é "Quem está entrando?"; Escape não fecha a abertura; escolher Lucas deixa o botão aceso e o rótulo "Agora a senha de Lucas"; senha errada devolve "senha não confere" sem entrar; senha certa entra, o rótulo vira "Você é" e o menu aparece com os 6 destinos e "Sincronizado com a nuvem". Numa segunda bateria, como Lucas: `pode_editar_roteiro` falso, o corpo ganha `sem-roteiro`, o aviso "O roteiro é organizado pelo Bruno" aparece na aba do roteiro, o botão de encaixar existe no HTML mas o CSS o esconde, e a marcação dele chega no banco como dele.
 
 ## Product Principles
