@@ -2,19 +2,21 @@
 
 
 
+/* l = rotulo completo, usado no cabecalho da secao dentro da lista
+   s = rotulo curto, usado na faixa de categorias (cabe em duas linhas no desktop) */
 const CATS=[
- {k:'data',     i:'data',     l:'Só nesta data'},
- {k:'arte',     i:'arte',     l:'Arte e museus'},
- {k:'historia', i:'historia', l:'História e memória'},
- {k:'bairro',   i:'bairro',   l:'Bairros e caminhada'},
- {k:'natureza', i:'natureza', l:'Trilhas e natureza'},
- {k:'noturno',  i:'noturno',  l:'Noturno e vistas'},
- {k:'balada',   i:'balada',   l:'Balada e música ao vivo'},
- {k:'comida',   i:'comida',   l:'Comida e bebida'},
- {k:'compras',  i:'compras',  l:'Compras e mercados'},
- {k:'palco',    i:'palco',    l:'Palco, ópera e concertos'},
- {k:'unica',    i:'unica',    l:'Experiência única'},
- {k:'batevolta',i:'batevolta',l:'Bate-volta de um dia'}
+ {k:'data',     i:'data',     l:'Só nesta data',            s:'Com data'},
+ {k:'arte',     i:'arte',     l:'Arte e museus',            s:'Arte'},
+ {k:'historia', i:'historia', l:'História e memória',       s:'História'},
+ {k:'bairro',   i:'bairro',   l:'Bairros e caminhada',      s:'Bairros'},
+ {k:'natureza', i:'natureza', l:'Trilhas e natureza',       s:'Trilhas'},
+ {k:'noturno',  i:'noturno',  l:'Noturno e vistas',         s:'Noturno'},
+ {k:'balada',   i:'balada',   l:'Balada e música ao vivo',  s:'Balada'},
+ {k:'comida',   i:'comida',   l:'Comida e bebida',          s:'Comida'},
+ {k:'compras',  i:'compras',  l:'Compras e mercados',       s:'Compras'},
+ {k:'palco',    i:'palco',    l:'Palco, ópera e concertos', s:'Palco'},
+ {k:'unica',    i:'unica',    l:'Experiência única',        s:'Experiência'},
+ {k:'batevolta',i:'batevolta',l:'Bate-volta de um dia',     s:'Bate-volta'}
 ];
 const RATES=[{k:'must',l:'Quero muito'},{k:'want',l:'Quero'},{k:'maybe',l:'Talvez'},{k:'no',l:'Passo'}];
 const CITY={berlin:'Berlim',paris:'Paris',colonia:'Colônia'};
@@ -73,6 +75,10 @@ function profLoad(){
   });
   /* as ideias anotadas são do casal, não de um perfil: ficam soltas no store */
   if(!Array.isArray(store.ideias))store.ideias=[];
+  /* fila do que mudou aqui e ainda não subiu */
+  if(!store.pendente||typeof store.pendente!=='object')store.pendente={};
+  if(!store.pendente.marcas||typeof store.pendente.marcas!=='object')store.pendente.marcas={};
+  if(!store.pendente.roteiro||typeof store.pendente.roteiro!=='object')store.pendente.roteiro={};
   who=PEOPLE.some(p=>p.k===store.active)?store.active:'bruno';
   store.active=who;
   /* grava sempre: a conversão de id precisa ficar registrada */
@@ -299,7 +305,7 @@ function renderList(c,animate){
   const box=document.getElementById('list-'+c);
   const u=ui[c];
   if(!shown.length){
-    box.innerHTML='<p class="empty">Nenhum passeio com esses filtros.</p>';counts();return;
+    box.innerHTML='<p class="empty">Nenhum passeio com esses filtros.</p>';renderChips(c);counts();return;
   }
   let html='';
   const filtering=!!(u.q||u.cats.size||u.tags.size);
@@ -334,6 +340,9 @@ function renderList(c,animate){
   }
   box.innerHTML=html;
   if(animate) observeRows(box); else revealNow(box);
+  /* a faixa conta os mesmos itens que a lista, entao quem redesenha a lista
+     redesenha a faixa: assim ela nao fica velha depois da sincronizacao */
+  renderChips(c);
   counts();fsum();
 }
 
@@ -359,6 +368,7 @@ function bindRows(box){
       if(s.r===st.dataset.r) delete s.r; else s.r=st.dataset.r;
       if(!s.r&&!s.n) delete state[id]; else state[id]=s;
       save();
+      pendMarca(id);
       row.dataset.st=s.r||'';
       row.querySelectorAll('.step').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.r===s.r)));
       avatares(row,id);
@@ -410,6 +420,7 @@ function bindRows(box){
       if(t.value.trim()) s.n=t.value.trim(); else delete s.n;
       if(!s.r&&!s.n) delete state[id]; else state[id]=s;
       save();
+      pendMarca(id);
       const b=row.querySelector('.nbtn');
       b.classList.toggle('has',!!s.n);
       if(!s.n && !t.classList.contains('show')) t.classList.remove('show');
@@ -427,39 +438,82 @@ function hotTags(c){
   DATA.filter(x=>x.c===c).forEach(x=>(x.t||[]).forEach(t=>m[t]=(m[t]||0)+1));
   return Object.keys(m).filter(t=>m[t]>=3).sort((a,b)=>m[b]-m[a]).slice(0,16);
 }
+/* passa por tudo menos o filtro de categoria — e a base para contar a faixa */
+function passSemCategoria(it,c){
+  const u=ui[c]; if(!u) return true;
+  if(u.tags.size){const t=it.t||[];for(const x of u.tags){if(t.indexOf(x)<0)return false;}}
+  if(u.q){
+    const q=u.q.toLowerCase();
+    const hay=(it.n+' '+(it.o||'')+' '+(it.a||'')+' '+(it.w||'')+' '+(it.t||[]).join(' ')).toLowerCase();
+    if(hay.indexOf(q)<0) return false;
+  }
+  return true;
+}
 function renderChips(c){
-  const u=ui[c];
-  const cat=document.getElementById('cats');
-  if(cat && cat.dataset.city!==c){
-    cat.dataset.city=c;
-    cat.innerHTML=CATS.filter(x=>DATA.some(it=>it.c===c&&it.k===x.k))
-      .map(x=>'<button class="chip" data-cat="'+x.k+'">'+ic(x.i,'ic-s')+x.l+'</button>').join('');
+  const u=ui[c]; if(!u) return;
+  const rail=document.getElementById('cats');
+  if(rail){
+    /* cada categoria mostra quantos itens sobram depois da busca e dos temas */
+    const base=DATA.filter(it=>it.c===c&&passSemCategoria(it,c));
+    const n={};
+    base.forEach(it=>{n[it.k]=(n[it.k]||0)+1;});
+    /* mesma lingua do cabecalho de secao da lista: icone na cor da categoria,
+       selo de contagem tingido, e o item ligado na propria cor */
+    let h='<button class="catpill" data-cat="__todas" style="--cat:var(--ink)" aria-pressed="'+(!u.cats.size)+'">Todas<b>'+base.length+'</b></button>';
+    CATS.forEach(x=>{
+      if(!n[x.k]) return;
+      h+='<button class="catpill" data-cat="'+x.k+'" style="--cat:var(--k-'+x.k+')" aria-pressed="'+u.cats.has(x.k)+'" title="'+esc(x.l)+'">'
+        +ic(x.i,'ic-s')+esc(x.s||x.l)+'<b>'+n[x.k]+'</b></button>';
+    });
+    rail.innerHTML=h;
+    const sel=Array.from(u.cats).join('|');
+    if(rail.dataset.sel!==sel){
+      rail.dataset.sel=sel;
+      const on=rail.querySelector('[aria-pressed="true"]');
+      if(on){
+        const pad=14;
+        if(on.offsetLeft-pad<rail.scrollLeft) rail.scrollTo({left:Math.max(0,on.offsetLeft-pad),behavior:'smooth'});
+        else if(on.offsetLeft+on.offsetWidth+pad>rail.scrollLeft+rail.clientWidth)
+          rail.scrollTo({left:on.offsetLeft+on.offsetWidth-rail.clientWidth+pad,behavior:'smooth'});
+      }
+    }
   }
-  const tg=document.getElementById('tags');
-  if(tg && tg.dataset.city!==c){
-    tg.dataset.city=c;
-    tg.innerHTML=hotTags(c).map(t=>'<button class="chip" data-tg="'+esc(t)+'">'+esc(t)+'</button>').join('');
+  /* Temas: ficam abertos abaixo da foto. Duas linhas por padrao e um
+     "Mostrar tudo" quando nao couberem — no celular 16 etiquetas viram um bloco. */
+  const tg=document.getElementById('tags-'+c);
+  if(tg){
+    tg.innerHTML=hotTags(c).map(t=>
+      '<button class="chip'+(u.tags.has(t)?' on':'')+'" type="button" data-tg="'+esc(t)+'">'+esc(t)+'</button>'
+    ).join('');
+    const fb=document.getElementById('fb-'+c);
+    const more=fb?fb.querySelector('.fb-more'):null;
+    if(more){
+      const aberto=fb.classList.contains('open');
+      const cortado=tg.scrollHeight>tg.clientHeight+2;
+      more.hidden=!cortado&&!aberto;
+      more.textContent=aberto?'Mostrar menos':'Mostrar tudo';
+    }
   }
-  if(cat) cat.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',u.cats.has(b.dataset.cat)));
-  if(tg) tg.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',u.tags.has(b.dataset.tg)));
-  $('#dot-filtro').parentNode.classList.toggle('act',u.cats.size>0||u.tags.size>0);
 }
 function fsum(){
   const u=ui[cur],p=[];
-  u.cats.forEach(k=>p.push(catOf(k).l));
+  /* a categoria fica de fora: a propria faixa mostra qual esta ligada */
   u.tags.forEach(t=>p.push('#'+t));
   if(u.q) p.push('“'+u.q+'”');
   const el=$('#fsum');
   if(!p.length || ['fontes','gostos','roteiro'].indexOf(cur)>=0){el.classList.remove('show');el.innerHTML='';return;}
   el.innerHTML='<b>Filtros ativos</b> '+p.map(esc).join(' · ')+' <button class="tbtn" id="fsum-x" style="margin-left:auto">Limpar</button>';
   el.classList.add('show');
-  const x=$('#fsum-x'); if(x) x.onclick=clearFilters;
+  const x=$('#fsum-x'); if(x) x.onclick=()=>clearFilters();
 }
-function clearFilters(){
-  const u=ui[cur]; if(!u) return;
+function clearFilters(c){
+  c=c||cur;
+  const u=ui[c]; if(!u) return;
   u.cats.clear();u.tags.clear();u.q='';u.sort='cat';
-  $('#q').value='';$('#q-x').hidden=true;$('#sort').value='cat';
-  renderChips(cur);renderList(cur,false);
+  if(c===cur){$('#q').value='';$('#q-x').hidden=true;}
+  const s=document.getElementById('sort-'+c); if(s) s.value='cat';
+  const fb=document.getElementById('fb-'+c); if(fb) fb.classList.remove('open');
+  renderList(c,false);
 }
 
 /* ---------- contadores ---------- */
@@ -652,7 +706,7 @@ Object.keys(plan).forEach(k=>{
   plan[k]=(Array.isArray(plan[k])?plan[k]:[]).filter(id=>byId[id]);
   if(!plan[k].length)delete plan[k];
 });
-function planSave(){profSalva();nuvemMudou();}
+function planSave(){profSalva();pendRoteiro();nuvemMudou();}
 function dayOf(id){for(const k in plan){if(plan[k].indexOf(id)>=0)return k;}return null;}
 function inPlan(id){return dayOf(id)!==null;}
 function planTotal(){let n=0;for(const k in plan)n+=plan[k].length;return n;}
@@ -1145,13 +1199,14 @@ function show(v,anim){
   const onTab=document.querySelector('.tab.on');
   if(onTab) revealTab(onTab,anim);
   const isCity=['berlin','paris','colonia'].indexOf(v)>=0;
-  $('#b-busca').hidden=!isCity;$('#b-filtro').hidden=!isCity;
-  if(!isCity){closePanel();$('#fsum').classList.remove('show');}
+  $('#filterbar').classList.toggle('off',!isCity);
+  $('#searchrow').classList.toggle('off',!isCity);
+  if(!isCity){$('#fsum').classList.remove('show');}
   else{
     renderChips(v);
     $('#q').value=ui[v].q;
     $('#q-x').hidden=!ui[v].q;
-    $('#sort').value=ui[v].sort;
+    const sel=document.getElementById('sort-'+v); if(sel) sel.value=ui[v].sort;
     if(!rendered[v]){renderList(v,true);rendered[v]=true;}
     else{fsum();counts();}
   }
@@ -1167,46 +1222,44 @@ function show(v,anim){
 }
 $$('.tab').forEach(t=>t.onclick=()=>show(t.dataset.v,true));
 
-/* ---------- painel ---------- */
-function openPanel(which){
-  const p=$('#panel');
-  if(p.classList.contains('open')){closePanel();return;}
-  p.classList.add('open');
-  $('#b-busca').setAttribute('aria-expanded','true');
-  $('#b-filtro').setAttribute('aria-expanded','true');
-  if(which==='search') setTimeout(()=>$('#q').focus(),300);
-}
-function closePanel(){
-  const p=$('#panel');
-  p.classList.remove('open');
-  $('#b-busca').setAttribute('aria-expanded','false');
-  $('#b-filtro').setAttribute('aria-expanded','false');
-}
-$('#b-busca').onclick=()=>openPanel('search');
-$('#b-filtro').onclick=()=>openPanel('filter');
-
 /* ---------- controles gerais ---------- */
 $('#q').addEventListener('input',function(){
   if(!ui[cur]) return;
   ui[cur].q=this.value.trim();
   $('#q-x').hidden=!this.value;
-  renderList(cur,false);
+  renderChips(cur);renderList(cur,false);
 });
 $('#q-x').onclick=()=>{if(!ui[cur])return;$('#q').value='';ui[cur].q='';$('#q-x').hidden=true;renderList(cur,false);};
-$('#sort').addEventListener('change',function(){if(!ui[cur])return;ui[cur].sort=this.value;renderList(cur,false);});
 $('#cats').addEventListener('click',e=>{
-  const b=e.target.closest('.chip'); if(!b||!ui[cur]) return;
+  const b=e.target.closest('.catpill'); if(!b||!ui[cur]) return;
   const u=ui[cur],k=b.dataset.cat;
-  if(u.cats.has(k))u.cats.delete(k); else u.cats.add(k);
-  renderChips(cur);renderList(cur,false);
+  if(k==='__todas') u.cats.clear();
+  else if(u.cats.has(k)) u.cats.delete(k);
+  else u.cats.add(k);
+  renderList(cur,false);
 });
-$('#tags').addEventListener('click',e=>{
-  const b=e.target.closest('.chip'); if(!b||!ui[cur]) return;
-  const u=ui[cur],k=b.dataset.tg||b.dataset.tag;
-  if(u.tags.has(k))u.tags.delete(k); else u.tags.add(k);
-  renderChips(cur);renderList(cur,false);
+/* temas, ordenacao e limpar sao por cidade: cada bloco vive na sua aba */
+['berlin','paris','colonia'].forEach(c=>{
+  const tg=document.getElementById('tags-'+c);
+  if(tg) tg.addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b) return;
+    const u=ui[c],k=b.dataset.tg;
+    if(u.tags.has(k))u.tags.delete(k); else u.tags.add(k);
+    renderList(c,false);
+  });
+  const s=document.getElementById('sort-'+c);
+  if(s) s.addEventListener('change',function(){ ui[c].sort=this.value; renderList(c,false); });
+  const l=document.querySelector('[data-limpar="'+c+'"]');
+  if(l) l.onclick=()=>clearFilters(c);
 });
-$('#limpar').onclick=clearFilters;
+/* "Mostrar tudo" dos temas */
+document.addEventListener('click',e=>{
+  const m=e.target.closest('.fb-more'); if(!m) return;
+  const c=m.dataset.more, fb=document.getElementById('fb-'+c);
+  if(!fb) return;
+  fb.classList.toggle('open');
+  renderChips(c);
+});
 /* abre e recolhe todas as gavetas da cidade atual */
 document.addEventListener('click',e=>{
   const b=e.target.closest('#sec-all');if(!b)return;
@@ -1236,6 +1289,7 @@ $('#imp-go').onclick=()=>{
     profGrava();
     const d=store.people[alvo]||profVazio();
     /* arquivo exportado antes da troca de id chega com "i0", "i1"... */
+    const idsAntes=Object.keys(d.state||{});
     d.state=migraIds((o.state&&typeof o.state==='object')?o.state:((o.perfil||o.plan)?{}:o));
     if(o.plan&&typeof o.plan==='object'){
       d.plan=migraPlano(o.plan);
@@ -1250,6 +1304,13 @@ $('#imp-go').onclick=()=>{
     state=d.state;plan=d.plan;colLe(d.gavetas);
     openDay=null;
     profSalva();
+    /* importar é dizer "a minha seleção é esta": o que sumiu em relação
+       ao que havia aqui precisa ser avisado ao banco */
+    if(alvo===minhaChave){
+      idsAntes.forEach(id=>{if(!d.state[id])pend().marcas[id]='apagar';});
+      pendSemearDoLocal();
+      nuvemMudou();
+    }
     ['berlin','paris','colonia'].forEach(c=>{renderList(c,false);rendered[c]=true;});
     renderPlan();stats();whoSync();
     $('#imp-wrap').hidden=true;toast('Seleção de '+nomeDe(alvo)+' importada');
@@ -1257,8 +1318,13 @@ $('#imp-go').onclick=()=>{
 };
 $('#x-limpar').onclick=()=>{
   if(!confirm('Apagar as marcações, anotações e o roteiro de '+nomeDe(who)+'? O outro perfil não é tocado.'))return;
+  const idsMarcados=Object.keys(state);
   state={};save();
   plan={};planSave();openDay=null;
+  /* o que foi apagado aqui precisa ser dito ao banco: apagar não é o mesmo
+     que nunca ter existido */
+  idsMarcados.forEach(id=>{pend().marcas[id]='apagar';});
+  pendSalva();
   ['berlin','paris','colonia'].forEach(c=>{renderList(c,false);rendered[c]=true;});
   renderPlan();stats();toast('Tudo limpo em '+nomeDe(who));
 };
@@ -1284,6 +1350,8 @@ addEventListener('resize',()=>{
   rt=setTimeout(()=>{
     const on=document.querySelector('.tab.on');
     if(on) moveInk(on,false);
+    /* a altura da tela decide se os temas cabem: remede depois de girar/redimensionar */
+    if(ui[cur]) renderChips(cur);
   },140);
 });
 
@@ -1462,10 +1530,9 @@ function lugaresAplicar(lista){
   });
 }
 
-/* banco -> aparelho. O banco é a verdade: quem não tem linha fica sem nada.
-   A exceção é quando eu mexi na tela durante a busca (manterMeu): aí o que
-   está aqui é mais novo e não pode ser atropelado. */
-function nuvemAplicar(dados,manterMeu){
+/* banco -> aparelho. O banco é a base; em cima dela entra a fila do que
+   foi mexido aqui e ainda não subiu (ver pendAplicar). */
+function nuvemAplicar(dados){
   const marcas={},planos={};
   (dados.avaliacoes||[]).forEach(a=>{
     const k=chaveDoId[a.pessoa_id];if(!k)return;
@@ -1480,7 +1547,6 @@ function nuvemAplicar(dados,manterMeu){
   });
   /* atenção: chaveDoId é id->chave, e o que interessa aqui são as chaves locais */
   Object.keys(idDaChave).forEach(k=>{
-    if(manterMeu&&k===minhaChave)return;
     const d=store.people[k]||(store.people[k]=profVazio());
     d.state=marcas[k]||{};
     const pl={};
@@ -1500,30 +1566,110 @@ function nuvemAplicar(dados,manterMeu){
   profSalvaIdeias();
   /* e os cards que já nasceram de ideias entram no catálogo */
   lugaresAplicar(dados.lugares);
+  /* e por cima de tudo o que ficou na fila deste aparelho */
+  if(minhaChave)pendAplicar();
 }
 
-/* o que é meu, no formato do banco */
-function nuvemMarcasMinhas(){
-  const out=[];
-  Object.keys(state).forEach(id=>{
-    const s=state[id];if(!s||!s.r)return;
-    out.push({pessoa_id:euId,lugar_id:id,nivel:s.r,nota:(s.n&&s.n.trim())?s.n:null});
-  });
-  return out;
+/* ---------- a fila do que mudou aqui ----------
+   Cada mexida entra numa fila. O envio é por diferença: sobe o que mudou
+   e apaga só o que foi apagado de propósito neste aparelho — nunca o que
+   ele não conhece. É isso que impede um aparelho com dados velhos de
+   derrubar o que o outro marcou, e é isso que faz a marcação feita sem
+   rede sobreviver até a rede voltar, em vez de ser atropelada. */
+function pend(){
+  if(!store.pendente||typeof store.pendente!=='object')store.pendente={};
+  if(!store.pendente.marcas||typeof store.pendente.marcas!=='object')store.pendente.marcas={};
+  if(!store.pendente.roteiro||typeof store.pendente.roteiro!=='object')store.pendente.roteiro={};
+  return store.pendente;
 }
-function nuvemRoteiroMeu(){
-  const out=[];
+function pendSalva(){try{localStorage.setItem(PROFKEY,JSON.stringify(store));}catch(e){}}
+function pendMarca(id){
+  const s=state[id]||{};
+  const nota=(s.n&&s.n.trim())?s.n.trim():null;
+  if(s.r||nota)pend().marcas[id]={r:s.r||null,n:nota};
+  else pend().marcas[id]='apagar';
+  pendSalva();
+}
+/* o roteiro é reescrito inteiro na fila: quando um item anda, a ordem
+   dos vizinhos muda junto */
+function pendRoteiro(){
+  const p=pend();
+  const vivos={};
   Object.keys(plan).forEach(dia=>{
     (plan[dia]||[]).forEach((id,i)=>{
-      if(byId[id])out.push({pessoa_id:euId,lugar_id:id,dia:(dia==='pool'?null:dia),posicao:i});
+      if(!byId[id])return;
+      p.roteiro[id]={dia:(dia==='pool'?null:dia),posicao:i};
+      vivos[id]=1;
     });
   });
-  return out;
+  Object.keys(p.roteiro).forEach(id=>{
+    if(p.roteiro[id]!=='apagar'&&!vivos[id])p.roteiro[id]='apagar';
+  });
+  pendSalva();
+}
+/* primeira vez neste aparelho: o que já estava guardado aqui entra na
+   fila, para subir em vez de ser atropelado pelo que está no banco */
+function pendSemearDoLocal(){
+  const p=pend();
+  Object.keys(state||{}).forEach(id=>{
+    const s=state[id]||{};
+    const nota=(s.n&&s.n.trim())?s.n.trim():null;
+    if(s.r||nota)p.marcas[id]={r:s.r||null,n:nota};
+  });
+  if(podeRoteiro)pendRoteiro();
+  pendSalva();
+}
+/* o que está na fila manda por cima do que veio do banco */
+function pendAplicar(){
+  const p=pend();
+  const d=store.people[minhaChave];
+  if(!d)return;
+  Object.keys(p.marcas).forEach(id=>{
+    const v=p.marcas[id];
+    if(v==='apagar'){delete d.state[id];return;}
+    const novo={};
+    if(v.r)novo.r=v.r;
+    if(v.n)novo.n=v.n;
+    if(Object.keys(novo).length)d.state[id]=novo;else delete d.state[id];
+  });
+  const vivos=Object.keys(p.roteiro).filter(id=>p.roteiro[id]!=='apagar');
+  if(vivos.length){
+    const novo={};
+    vivos.map(id=>({id:id,dia:p.roteiro[id].dia,pos:p.roteiro[id].posicao}))
+      .sort((a,b)=>a.pos-b.pos)
+      .forEach(x=>{const balde=x.dia||'pool';(novo[balde]=novo[balde]||[]).push(x.id);});
+    d.plan=novo;
+  }else if(podeRoteiro&&Object.keys(p.roteiro).length){
+    d.plan={};
+  }
 }
 async function nuvemEmpurra(){
   if(!euId||who!==minhaChave)return;
-  await NUVEM.enviarMarcas(euId,nuvemMarcasMinhas());
-  if(podeRoteiro)await NUVEM.enviarRoteiro(euId,nuvemRoteiroMeu());
+  const p=pend();
+  const sobe=[],apaga=[],rotSobe=[],rotApaga=[];
+  Object.keys(p.marcas).forEach(id=>{
+    const v=p.marcas[id];
+    if(v==='apagar'){apaga.push(id);return;}
+    sobe.push({pessoa_id:euId,lugar_id:id,nivel:v.r||null,nota:v.n||null});
+  });
+  if(podeRoteiro){
+    Object.keys(p.roteiro).forEach(id=>{
+      const v=p.roteiro[id];
+      if(v==='apagar'){rotApaga.push(id);return;}
+      rotSobe.push({pessoa_id:euId,lugar_id:id,dia:v.dia||null,posicao:v.posicao});
+    });
+  }
+  if(!sobe.length&&!apaga.length&&!rotSobe.length&&!rotApaga.length)return;
+  const antes=JSON.parse(JSON.stringify(p));
+  await NUVEM.enviarMarcas(euId,sobe,apaga);
+  if(podeRoteiro)await NUVEM.enviarRoteiro(euId,rotSobe,rotApaga);
+  /* limpa só o que subiu: o que mudou durante o envio fica na fila */
+  ['marcas','roteiro'].forEach(tipo=>{
+    Object.keys(antes[tipo]||{}).forEach(id=>{
+      if(JSON.stringify(p[tipo][id])===JSON.stringify(antes[tipo][id]))delete p[tipo][id];
+    });
+  });
+  pendSalva();
 }
 /* chamado a cada marcação: espera a poeira baixar e sobe */
 function nuvemMudou(){
@@ -1566,21 +1712,16 @@ async function nuvemSincroniza(){
     }
     if(who!==minhaChave)profileSet(minhaChave);
     const g=nuvemGuardado();
-    nuvemSincronizado=(g.pessoa===euId&&g.sincronizado===true);
-    const local=store.people[minhaChave]||profVazio();
-    const temLocal=Object.keys(local.state||{}).length>0||Object.keys(local.plan||{}).length>0;
-    if(!nuvemSincronizado&&temLocal){
-      /* este aparelho já tinha marcação: ela sobe antes de qualquer coisa,
-         para não ser atropelada pelo que está no banco */
-      await nuvemEmpurra();
-      nuvemAplicar(await NUVEM.puxar(),nuvemVersao!==versaoAntes);
-    }else{
-      nuvemAplicar(dados,nuvemVersao!==versaoAntes);
-    }
+    /* primeira vez neste aparelho: o que já estava guardado aqui entra na
+       fila e sobe, em vez de ser descartado pelo que está no banco */
+    if(!(g.pessoa===euId&&g.sincronizado===true))pendSemearDoLocal();
     nuvemSincronizado=true;
     nuvemGuarda({pessoa:euId,sincronizado:true,tempo:Date.now(),chaves:idDaChave});
+    nuvemAplicar(dados);
     nuvemEstado='ok';nuvemErro='';
     nuvemRecarrega();
+    /* sobe a fila: o que foi mexido aqui, com rede ou sem */
+    await nuvemEmpurra();
     /* o que ficou anotado sem rede sobe agora */
     await ideiaEmpurra();
   }catch(e){

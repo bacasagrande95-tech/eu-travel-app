@@ -137,6 +137,17 @@ A etiqueta `verificar` funciona como fila de trabalho: é o próprio catálogo d
 
 **Efeito no app:** a etiqueta `fechado` (que já existia no vocabulário e pinta em amarelo de aviso) passou a marcar cinco itens, e o total de `verificar` caiu de 22 para 12. Toda a revisão foi feita em `app/dados.js` e `fonte/dados.js` ao mesmo tempo, e o app foi renderizado depois para conferir que nada quebrou (0 erro de console, 429 passeios).
 
+### Dois defeitos de sincronização, encontrados ao olhar o banco (27/09/2026)
+
+Ao conferir o que o Lucas tinha deixado no app, o banco mostrou **três marcações do Bruno, todas gravadas no mesmo segundo (24/09, 20:23:03)**, junto com um item de roteiro também no mesmo instante — ou seja, um único envio escreveu aquele conjunto. Em 20/09 havia seis marcações. Isso expôs dois defeitos reais no sincronizador, os dois corrigidos:
+
+1. **O envio apagava o que não conhecia.** `enviarMarcas` subia a lista inteira e, em seguida, apagava no banco tudo o que não estivesse nela. Bastava um aparelho com dados velhos ou parciais subir a lista dele para **derrubar as marcações que só existiam no outro aparelho**. Era o defeito mais perigoso do app, porque apagava dado do usuário sem aviso.
+2. **O que era feito offline era descartado.** O app dizia "as marcações ficam neste aparelho e sobem quando a rede voltar", mas ao reabrir com rede a sincronização aplicava o que vinha do banco por cima do estado local — e a marcação feita offline sumia antes de subir. A promessa era falsa.
+
+**A correção** foi trocar o "manda a lista inteira" por uma **fila de diferenças**: cada mexida entra numa fila (`store.pendente`), o envio sobe só o que mudou e apaga **somente** o que foi apagado de propósito naquele aparelho. A fila é aplicada por cima do que vem do banco, então nada local é atropelado; e na primeira sincronização de um aparelho, o que já estava guardado nele entra na fila para subir em vez de ser descartado. Os pontos que alimentam a fila: marcar/desmarcar, escrever nota, mexer no roteiro, limpar tudo e importar JSON.
+
+**Verificado com dois cenários que antes davam errado:** (a) um aparelho com dados velhos, contendo **uma** marcação que o banco não tinha, subiu a dele e **as três do banco sobreviveram** — antes ele teria deixado uma; (b) uma marcação feita offline, guardada só na fila, sobreviveu a reabrir o app com rede e chegou ao banco. As linhas de teste foram apagadas depois, e o banco ficou só com as marcações reais do Bruno.
+
   Verificado no Chrome headless, em cinco passos: na abertura sem sessão o menu tem 0 itens e está escondido, o campo de e-mail não existe mais, os dois botões aparecem e o rótulo é "Quem está entrando?"; Escape não fecha a abertura; escolher Lucas deixa o botão aceso e o rótulo "Agora a senha de Lucas"; senha errada devolve "senha não confere" sem entrar; senha certa entra, o rótulo vira "Você é" e o menu aparece com os 6 destinos e "Sincronizado com a nuvem". Numa segunda bateria, como Lucas: `pode_editar_roteiro` falso, o corpo ganha `sem-roteiro`, o aviso "O roteiro é organizado pelo Bruno" aparece na aba do roteiro, o botão de encaixar existe no HTML mas o CSS o esconde, e a marcação dele chega no banco como dele.
 
 ## Product Principles

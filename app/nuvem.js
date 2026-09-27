@@ -137,32 +137,35 @@ window.NUVEM=(function(){
     return api('ideia?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
   }
 
-  /* sobe as minhas marcações e apaga as minhas que sumiram.
-     A lista é sempre completa, então o que não está nela não existe mais. */
-  async function enviarMarcas(pessoaId,marcas){
-    if(marcas.length){
+  /* Sobe o que mudou e apaga só o que foi apagado aqui, explicitamente.
+     Antes daqui saía a lista inteira e o que não estivesse nela era
+     apagado — bastava um aparelho com dados velhos para derrubar o que
+     o outro tinha marcado. Agora o envio é por diferença: o que não
+     vem na lista simplesmente não é tocado. */
+  async function enviarMarcas(pessoaId,sobe,apaga){
+    if(sobe.length){
       await api('avaliacao',{
         method:'POST',
         headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-        body:marcas
+        body:sobe
       });
     }
-    const ids=marcas.map(m=>m.lugar_id);
-    const filtro=ids.length?('&lugar_id=not.in.('+ids.join(',')+')'):'';
-    await api('avaliacao?pessoa_id=eq.'+pessoaId+filtro,{method:'DELETE'});
+    if(apaga&&apaga.length){
+      await api('avaliacao?pessoa_id=eq.'+pessoaId+'&lugar_id=in.('+apaga.join(',')+')',{method:'DELETE'});
+    }
   }
 
-  async function enviarRoteiro(pessoaId,itens){
-    if(itens.length){
+  async function enviarRoteiro(pessoaId,sobe,apaga){
+    if(sobe.length){
       await api('item_roteiro',{
         method:'POST',
         headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-        body:itens
+        body:sobe
       });
     }
-    const ids=itens.map(i=>i.lugar_id);
-    const filtro=ids.length?('&lugar_id=not.in.('+ids.join(',')+')'):'';
-    await api('item_roteiro?pessoa_id=eq.'+pessoaId+filtro,{method:'DELETE'});
+    if(apaga&&apaga.length){
+      await api('item_roteiro?pessoa_id=eq.'+pessoaId+'&lugar_id=in.('+apaga.join(',')+')',{method:'DELETE'});
+    }
   }
 
   return {

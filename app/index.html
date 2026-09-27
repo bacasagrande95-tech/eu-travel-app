@@ -53,47 +53,25 @@
         <button class="tab" role="tab" aria-selected="false" data-v="fontes">Fontes</button>
         <button class="tab" role="tab" aria-selected="false" data-v="gostos">Gostos</button>
       </div>
+      <div class="searchrow" id="searchrow">
+        <label class="field">
+          <svg class="ic ic-s"><use href="#i-busca"/></svg>
+          <input type="search" id="q" placeholder="Buscar passeio, bairro ou tema" autocomplete="off">
+          <button class="mini" id="q-x" hidden aria-label="Limpar busca"><svg class="ic ic-s"><use href="#i-x"/></svg></button>
+        </label>
+      </div>
       <div class="chrome-actions">
         <button class="iconbtn" id="b-inicio" title="Tela de abertura e menu">
           <svg class="ic"><use href="#i-casa"/></svg><span class="sr">Tela de abertura e menu</span>
         </button>
-        <button class="iconbtn" id="b-busca" aria-expanded="false" aria-controls="panel" title="Buscar e filtrar">
-          <svg class="ic"><use href="#i-busca"/></svg><span class="dot"></span><span class="sr">Buscar e filtrar</span>
-        </button>
-        <button class="iconbtn" id="b-filtro" aria-expanded="false" aria-controls="panel" title="Categorias e ordenação">
-          <svg class="ic"><use href="#i-filtro"/></svg><span class="dot" id="dot-filtro"></span><span class="sr">Categorias e ordenação</span>
-        </button>
       </div>
     </div>
-    <div class="fsum" id="fsum"></div>
-    <div class="panel" id="panel">
-       <div class="panel-pad">
-        <label class="field">
-          <svg class="ic ic-s"><use href="#i-busca"/></svg>
-          <input type="search" id="q" placeholder="Buscar por nome, bairro ou palavra-chave" autocomplete="off">
-          <button class="mini" id="q-x" hidden aria-label="Limpar busca"><svg class="ic ic-s"><use href="#i-x"/></svg></button>
-        </label>
-        <div class="grp">
-          <span class="grp-h">Categoria</span>
-          <div class="scroller" id="cats"></div>
-        </div>
-        <div class="grp">
-          <span class="grp-h">Temas</span>
-          <div class="scroller" id="tags"></div>
-        </div>
-        <div class="panel-foot">
-          <div class="sel">
-            <label for="sort">Ordenar</label>
-            <select id="sort">
-              <option value="cat">Por categoria</option>
-              <option value="mark">Meus marcados primeiro</option>
-              <option value="name">Nome (A–Z)</option>
-              <option value="area">Bairro</option>
-            </select>
-          </div>
-          <button class="tbtn" id="limpar">Limpar filtros</button>
-        </div>
-       </div>
+
+    <div id="filterbar">
+      <div class="catwrap">
+        <div class="catrail" id="cats" role="group" aria-label="Filtrar por categoria"></div>
+      </div>
+      <div class="fsum" id="fsum"></div>
     </div>
   </div>
 </div>
@@ -110,7 +88,29 @@
         </div>
       </div>
     </header>
-    <div class="wrap"><div class="ideias" id="ideias-berlin"></div><div class="list" id="list-berlin"></div></div>
+    <div class="wrap">
+      <div class="fb" id="fb-berlin">
+        <div class="fb-h">
+          <span class="grp-h">Temas</span>
+          <button class="fb-more" type="button" data-more="berlin" hidden>Mostrar tudo</button>
+        </div>
+        <div class="fb-chips" id="tags-berlin"></div>
+        <div class="fb-foot">
+          <div class="sel">
+            <label for="sort-berlin">Ordenar</label>
+            <select id="sort-berlin">
+              <option value="cat">Por categoria</option>
+              <option value="mark">Meus marcados primeiro</option>
+              <option value="name">Nome (A–Z)</option>
+              <option value="area">Bairro</option>
+            </select>
+          </div>
+          <button class="tbtn" type="button" data-limpar="berlin">Limpar filtros</button>
+        </div>
+      </div>
+      <div class="ideias" id="ideias-berlin"></div>
+      <div class="list" id="list-berlin"></div>
+    </div>
   </div>
 
   <div class="view" id="v-paris">
@@ -124,7 +124,29 @@
         </div>
       </div>
     </header>
-    <div class="wrap"><div class="ideias" id="ideias-paris"></div><div class="list" id="list-paris"></div></div>
+    <div class="wrap">
+      <div class="fb" id="fb-paris">
+        <div class="fb-h">
+          <span class="grp-h">Temas</span>
+          <button class="fb-more" type="button" data-more="paris" hidden>Mostrar tudo</button>
+        </div>
+        <div class="fb-chips" id="tags-paris"></div>
+        <div class="fb-foot">
+          <div class="sel">
+            <label for="sort-paris">Ordenar</label>
+            <select id="sort-paris">
+              <option value="cat">Por categoria</option>
+              <option value="mark">Meus marcados primeiro</option>
+              <option value="name">Nome (A–Z)</option>
+              <option value="area">Bairro</option>
+            </select>
+          </div>
+          <button class="tbtn" type="button" data-limpar="paris">Limpar filtros</button>
+        </div>
+      </div>
+      <div class="ideias" id="ideias-paris"></div>
+      <div class="list" id="list-paris"></div>
+    </div>
   </div>
 
   <div class="view" id="v-colonia">
@@ -138,7 +160,29 @@
         </div>
       </div>
     </header>
-    <div class="wrap"><div class="ideias" id="ideias-colonia"></div><div class="list" id="list-colonia"></div></div>
+    <div class="wrap">
+      <div class="fb" id="fb-colonia">
+        <div class="fb-h">
+          <span class="grp-h">Temas</span>
+          <button class="fb-more" type="button" data-more="colonia" hidden>Mostrar tudo</button>
+        </div>
+        <div class="fb-chips" id="tags-colonia"></div>
+        <div class="fb-foot">
+          <div class="sel">
+            <label for="sort-colonia">Ordenar</label>
+            <select id="sort-colonia">
+              <option value="cat">Por categoria</option>
+              <option value="mark">Meus marcados primeiro</option>
+              <option value="name">Nome (A–Z)</option>
+              <option value="area">Bairro</option>
+            </select>
+          </div>
+          <button class="tbtn" type="button" data-limpar="colonia">Limpar filtros</button>
+        </div>
+      </div>
+      <div class="ideias" id="ideias-colonia"></div>
+      <div class="list" id="list-colonia"></div>
+    </div>
   </div>
 
   <div class="view" id="v-roteiro">
