@@ -1,0 +1,51 @@
+/* Extensão do visual claro do catálogo. */
+.decision-panel{margin:24px 0;background:var(--surface);padding:24px;border-top:3px solid var(--accent);border-radius:8px}
+.decision-heading{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.decision-heading h2,.agenda-section h2{font-size:24px;line-height:1.2;letter-spacing:-.02em}
+.decision-heading a,.decision-link,.agenda-section a,.agenda-back,.review-link{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.decision-heading a{font-size:14px}
+.decision-updated{color:var(--ink-2);font-size:13px;margin-top:8px}
+.decision-list{margin-top:8px}
+.decision-item{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:20px 0;border-bottom:1px solid var(--line)}
+.decision-item:last-child{border-bottom:0}
+.decision-item h3{font-size:17px;line-height:1.35;font-weight:600}
+.decision-item p{max-width:68ch;margin-top:6px;color:var(--ink-2);font-size:14px}
+.decision-item .decision-when{color:var(--accent);font-weight:600;font-size:13px;margin-top:4px}
+.decision-link{flex:0 0 175px;font-size:14px;font-weight:600;min-height:44px;display:flex;align-items:center;gap:6px}
+.decision-notes{margin-top:8px;font-size:14px}
+.decision-notes summary{cursor:pointer;padding:12px 0;font-weight:600;min-height:44px}
+.decision-notes ul,.agenda-notes{list-style:disc;padding-left:20px;color:var(--ink-2);font-size:14px}
+.decision-notes li,.agenda-notes li{padding:5px 0;max-width:72ch}
+.r-review{margin:12px 0;padding:12px 14px;background:var(--surface-2);border-radius:5px;font-size:13px;color:var(--ink-2)}
+.r-review strong{display:block;color:var(--ink);font-weight:600}
+.r-review p{margin-top:5px}
+.r-review a{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;text-underline-offset:3px;color:var(--accent);font-weight:600}
+.sp-agenda{display:block;margin-top:20px;color:var(--accent);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:4px;padding:10px 0}
+.agenda-page{max-width:960px;margin:auto;padding:32px 24px 60px}
+.agenda-back{display:inline-flex;min-height:44px;align-items:center;font-size:14px;font-weight:600}
+.agenda-intro{padding:28px 0 12px}
+.agenda-intro h1{font-size:clamp(32px,6vw,52px);letter-spacing:-.035em;line-height:1.08;max-width:20ch}
+.agenda-intro p{max-width:70ch;color:var(--ink-2);margin-top:16px}
+.agenda-nav{display:flex;gap:8px 24px;flex-wrap:wrap;padding:16px 0}
+.agenda-nav a{padding:10px 0;min-height:44px;display:inline-flex;align-items:center;color:var(--accent);text-decoration:underline;text-underline-offset:4px;font-weight:600}
+.agenda-section{margin-top:24px;padding:28px;background:var(--surface);border-radius:8px;scroll-margin-top:20px}
+.agenda-section>p{color:var(--ink-2);font-size:14px;margin-top:12px;max-width:70ch}
+.agenda-notes{margin-top:20px}
+.agenda-table{margin-top:20px;overflow-x:auto}
+.agenda-table table{width:100%;border-collapse:collapse;font-size:14px;text-align:left}
+.agenda-table th,.agenda-table td{padding:16px 12px;vertical-align:top;border-bottom:1px solid var(--line);line-height:1.5;overflow-wrap:anywhere}
+.agenda-table th{font-weight:600}
+.agenda-table td a{display:inline-flex;min-height:44px;align-items:center}
+.agenda-foot{margin-top:28px;font-size:13px;color:var(--ink-2);max-width:72ch}
+@media(max-width:600px){
+  .decision-panel{padding:20px 16px;margin:20px 0}
+  .decision-item{display:block;padding:18px 0}
+  .decision-link{margin-top:8px;min-height:44px}
+  .agenda-page{padding:20px 16px 40px}
+  .agenda-section{padding:22px 16px}
+  .agenda-table table,.agenda-table tbody,.agenda-table tr,.agenda-table td,.agenda-table th{display:block}
+  .agenda-table thead{display:none}
+  .agenda-table tr{padding:12px 0;border-bottom:1px solid var(--line)}
+  .agenda-table th,.agenda-table td{padding:4px 0;border:0}
+}
+@media(hover:hover){.decision-link:hover,.decision-heading a:hover,.review-link:hover,.agenda-nav a:hover{color:var(--ink)}}

@@ -273,6 +273,9 @@ function rowHTML(it){
        +'<div class="r-meta">'+meta+'</div>'
      +'</div>'
      +'<p class="r-why">'+it.w+'</p>'
+     +(it.revisao?'<aside class="r-review" aria-label="Revisão deste passeio"><strong>'+esc(it.revisao.status)+'</strong>'
+       +(it.revisao.acao?'<p>'+esc(it.revisao.acao)+'</p>':'')
+       +'<a href="'+esc(it.revisao.url)+'" target="_blank" rel="noopener noreferrer">Fonte oficial · revisão 27/10/2026 ↗</a></aside>':'')
      +'<div class="r-foot">'
        +'<div class="tags">'+tags+'</div>'
      +'<div class="r-act">'
@@ -673,9 +676,9 @@ const TRIPDATE={1:'voo',2:'colonia',3:'colonia',4:'colonia',5:'colonia',6:'berli
   8:'berlin',9:'berlin',10:'colonia',11:'colonia',12:'colonia',13:'paris',14:'paris',15:'paris',
   16:'paris',17:'colonia',18:'colonia'};
 const TRIPNOTE={1:'Voo de ida',2:'Chegada · base',5:'Base até a noite',
-  6:'Chegada de madrugada',9:'Fim do trecho · volta à noite',10:'Chegada de manhã',
+  6:'Disponível desde a manhã',9:'Disponível até a noite · volta',10:'Chegada de manhã',
   11:'Carnaval às 11h11',12:'Saída à noite',13:'Chegada de manhã',
-  16:'Fim do trecho · volta à noite',17:'Chegada de manhã',18:'Voo de volta'};
+  16:'Disponível até a noite · volta',17:'Chegada de manhã',18:'Voo de volta'};
 const TRIP=[];
 for(let d=1;d<=18;d++){
   const iso='2026-11-'+String(d).padStart(2,'0');
@@ -730,12 +733,17 @@ function unplan(id){
 
 /* ---- datas fixas escritas no proprio item ---- */
 function fixedDays(it){
+  if(Array.isArray(it.dias))return it.dias.slice();
   const s=(it.n||'')+' · '+(it.o||'');
   const out=[];
   const add=v=>{if(v>=1&&v<=30&&out.indexOf(v)<0)out.push(v);};
   let m,re;
   re=/(\d{1,2})\s*(?:a|à|e|–|—|-)\s*(\d{1,2})\s*\/\s*11\b/gi;
-  while((m=re.exec(s))){add(+m[1]);add(+m[2]);}
+  while((m=re.exec(s))){
+    const a=+m[1],b=+m[2];
+    if(/\s+e\s+/.test(m[0])){add(a);add(b);}
+    else for(let d=a;d<=b;d++)add(d);
+  }
   re=/(\d{1,2})\s*\/\s*11\b/g;
   while((m=re.exec(s)))add(+m[1]);
   re=/(\d{1,2})\s+de\s+novembro/gi;
@@ -747,7 +755,7 @@ function autoDay(it){
   const ok=ds.map(n=>'2026-11-'+dd2(n)).filter(d=>DAYSET[d]);
   if(!ok.length)return null;
   const same=ok.filter(d=>TRIPMAP[d].c===it.c);
-  return (same.length?same:ok)[0];
+  return same.length?same[0]:null;
 }
 
 /* ---- render ---- */
